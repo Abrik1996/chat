@@ -1,18 +1,39 @@
-﻿#include "Account.h"
+﻿#include "Message.h"
 #include <vector> 
 #include <memory> // для работы с умными указателями
-class UserVector : public std::vector<Account> // динамический массив для хранения аккаунтов в памяти
+class UserVector : public std::vector<Account> // динамический массив для хранения аккаунтов в памяти , чтобы не обращаться к файлу каждый раз
 {
     typedef std::vector<Account> ParentT;
 };
-class status
+class status              // структура для фиксации текущего пользователя
 {
 public:
     bool isloged;
     std::string loggedacc;
     status() { isloged = false; loggedacc = ""; }
 };
-bool login(status& Mystate , UserVector& A)
+
+void sendmessage(status Mystate, std::string target, std::string input) // отправка сообщения путём добавления его в messlog.txt
+{
+    std::ofstream out;
+    out.open("messlog.txt", std::ios_base::app);// открываем файл для записи
+    if (out.is_open())
+    {
+        out << Mystate.loggedacc << " " << target << " " << input << std::endl;
+    }
+
+    out.close();
+}
+bool search_acc(const std::string target, UserVector& A)  //поиск аккаунта (проверка валидности цели сообщения)
+{
+
+    for (std::vector<Account>::iterator iter = A.begin(); iter != A.end(); iter++)
+    {
+        if (iter->get_name() == target) return true;
+    }
+    return false;
+}
+bool login(status& Mystate , UserVector& A) // функция входа по логину/паролю 
 {
     std::cout << "\nInput account name\n";
     std::string tmp = "";
@@ -63,14 +84,36 @@ void regnewacc(const std::string input, UserVector& vec) // функция ре�
     //*/
     return;
 }
-void showallacc(UserVector& A)
+void showallacc(UserVector& A) //фукция нужны была для тестирования , оставлена для упрощения выбора пользователя при отправке сообщений
 {
     for (std::vector<Account>::iterator iter = A.begin(); iter != A.end(); iter++) {
         iter->show();
     }
 }
+void showmessages(status Mystate) // вывод всех сообщений для текущего пользователя
+{
+    system("cls");
+    char buff[100];
+    std::ifstream in("messlog.txt");// окрываем файл для чтения
+    if (!in.is_open()) // если файл не открыт
+        std::cout << "Empty message file!\n"; // сообщить об этом
+    while (in)
+    {
+        in.getline(buff, 100);
+        Message *tmp = new Message(std::string(buff));
+        if (Mystate.loggedacc==tmp->get_target())
+        tmp->show();
+        delete tmp;
+    }
+    in.close();
+}
 int main(int argc, char* argv[])
 {
+    /*
+    std::ofstream out3;
+    out3.open("messlog.txt");
+    out3.close();
+    */
     /*
     std::unique_ptr<Account> A1(new Account("user1", "1"));
     std::unique_ptr<Account> B(new Account("user2", "1"));
@@ -88,7 +131,7 @@ int main(int argc, char* argv[])
         out2 << C->get_passwd() << std::endl;
     }
     out.close(); out2.close(); 
-    данный блок используется для заполнения файлов дефолтными аккаунтами
+    данный блок можно использовать для заполнения файлов дефолтными аккаунтами
     */
     UserVector* A = new UserVector();
     std::ifstream in("accounts.txt");// окрываем файл для чтения
@@ -114,48 +157,95 @@ int main(int argc, char* argv[])
     in2.close();
     status Mystate;
     short choice = 0;
-    do {
-        system("cls");
-        std::cout << "Current account state "<< Mystate.isloged << " " << Mystate.loggedacc << std::endl;
-        std::cout << "\n1:login with account name and passwd 2:register new user 3:exit\n";
-        std::cin >> choice;
-        switch (choice) 
-        {
-        case 1:
-        {
-            if (login(Mystate, *A)) { choice = 3; }
+    while (1)
+    {
+
+
+        do {
+            system("cls");
             std::cout << "Current account state " << Mystate.isloged << " " << Mystate.loggedacc << std::endl;
-            break;
-        }
-        case 2: 
+            std::cout << "\n1:login with account name and passwd 2:register new user 3:exit\n";
+            std::cin >> choice;
+
+            switch (choice)
+            {
+            case 1:
+
+            {
+                if (login(Mystate, *A)) { choice = 3; }
+                std::cout << "Current account state " << Mystate.isloged << " " << Mystate.loggedacc << std::endl;
+                break;
+            }
+            case 2:
+            {
+                std::string tmp;
+                std::cout << "Please input account name \n";
+                std::cin >> tmp;
+                regnewacc(tmp, *A);
+                break;
+            }
+            case 3: 
+            {
+                A->clear();
+                return 0; // возвращаем 0 - правило хорошего тона 
+            }
+            };
+        } while (choice != 3);
+
+        do
         {
-            std::string tmp;
-            std::cout << "Please input account name \n";
-            std::cin >> tmp;
-            regnewacc(tmp, *A);
-            break;
-        }
-        case 3: break;
-        };
-    } while (choice != 3);
+            std::cout << "\n1:send message to user 2:send message to all 3:read all messages 4:logout user \n";
+            std::cin >> choice;
+            std::string tmp2 = "";
+            std::string tmp = "";
+            switch (choice)
+            {
+            case 1:
+            {
+                tmp = "";
+                std::cout << "\nTarget accout : ";
+                std::cin >> tmp;
+                if (!search_acc(tmp, *A))
+                {
+                    std::cout << "\nno such user\n";
+                    break;
+                }
+                tmp2 = "";
+                std::cout << "\nType message until char ';' : ";
+                std::string word;
+                do
+                {
+                    std::cin >> word;
+                    tmp2 += word + " ";
+                } while (word != ";");
+                sendmessage(Mystate, tmp, tmp2);
+                break;
+            }
+            case 2:
+            {
+                tmp2 = "";
+                std::cout << "\nType message until char ';' : ";
+                std::string word;
+                do
+                {
+                    std::cin >> word;
+                    tmp2 += word + " ";
+                } while (word != ";");
+                for (std::vector<Account>::iterator iter = A->begin(); iter != A->end(); iter++)
+                {
+                    sendmessage(Mystate, iter->get_name(), tmp2);
+                }
+                break;
+            }
+            case 3:
+                showmessages(Mystate);
+            case 4: 
+            {
+                Mystate.isloged = false;
+                Mystate.loggedacc = "";
+            }
+            };
+        } while (choice != 4);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//    regnewacc("usertestreg",*A);
-//    showallacc(*A);
-    A->clear();
-    return 0; // возвращаем 0 - правило хорошего тона
+    }
 }
