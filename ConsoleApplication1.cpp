@@ -1,6 +1,16 @@
 ﻿#include "Message.h"
 #include <vector> 
 #include <memory> // для работы с умными указателями
+#include <exception>
+
+class NoSynchronFiles : public std::exception
+{
+public:
+    virtual const char* what() const noexcept override
+    {
+        return "ERROR: Not synchronized configuration files !";
+    }
+};
 class UserVector : public std::vector<Account> // динамический массив для хранения аккаунтов в памяти , чтобы не обращаться к файлу каждый раз
 {
     typedef std::vector<Account> ParentT;
@@ -109,6 +119,7 @@ void showmessages(status Mystate) // вывод всех сообщений дл
 }
 int main(int argc, char* argv[])
 {
+    //account counter 
     /*
     std::ofstream out3;
     out3.open("messlog.txt");
@@ -133,28 +144,64 @@ int main(int argc, char* argv[])
     out.close(); out2.close(); 
     данный блок можно использовать для заполнения файлов дефолтными аккаунтами
     */
-    UserVector* A = new UserVector();
-    std::ifstream in("accounts.txt");// окрываем файл для чтения
-    if (in.is_open()) 
+    int n = 0; //счётчик дла аккаунтов
+    try
     {
-        while (in)
+        std::string check;
+        std::ifstream in("accounts.txt");// окрываем файл для чтения
+        if (in.is_open())
         {
-            Account* D = new Account();
-            std::string tmp; 
-            in >> tmp;
-            if (tmp!="") D->chg_name(tmp);
-            if (tmp != "") A->push_back(*D);
-            delete D;
+            while (in)
+            {
+                in >> check;
+                n++;
+            }
         }
+        in.close();
+        std::ifstream in2("passwds.txt");// окрываем файл для чтения
+        if (in2.is_open())
+        {
+            while (in2)
+            {
+                in2 >> check;
+                n--;
+            }
+        }
+        in.close();
+        if (n != 0) throw NoSynchronFiles();
     }
-    in.close();
-    std::ifstream in2("passwds.txt");// окрываем файл для чтения
-    for (std::vector<Account>::iterator iter = A->begin(); iter != A->end(); iter++) {
-        std::string tmp;
-        in2 >> tmp;
-        if (tmp != "") iter->chg_passwd(tmp);
+    catch (std::exception& e)
+    {
+        std::cout << e.what() << std::endl;
+        std::ofstream out, out2;
+        out.open("accounts.txt");
+        out2.open("passwds.txt");
+        return 1;
     }
-    in2.close();
+    
+        UserVector* A = new UserVector();
+        std::ifstream in("accounts.txt");// окрываем файл для чтения
+        if (in.is_open())
+        {
+            while (in)
+            {
+                Account* D = new Account();
+                std::string tmp;
+                in >> tmp;
+                if (tmp != "") D->chg_name(tmp);
+                if (tmp != "") A->push_back(*D);
+                delete D;
+            }
+        }
+        in.close();
+        std::ifstream in2("passwds.txt");// окрываем файл для чтения
+        for (std::vector<Account>::iterator iter = A->begin(); iter != A->end(); iter++) {
+            std::string tmp;
+            in2 >> tmp;
+            if (tmp != "") iter->chg_passwd(tmp);
+            
+        }
+        in2.close();
     status Mystate;
     short choice = 0;
     while (1)
