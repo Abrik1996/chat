@@ -1,19 +1,43 @@
-﻿// ConsoleApplication1.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
-//
-
-#include "Account.h"
-#include <vector>
+﻿#include "Account.h"
+#include <vector> 
 #include <memory> // для работы с умными указателями
-class UserVector : public std::vector<Account>
+class UserVector : public std::vector<Account> // динамический массив для хранения аккаунтов в памяти
 {
     typedef std::vector<Account> ParentT;
-public:
-    /*
-    UserVector& sort(int field);
-    ParentT::size_type find(int field, const std::string& request);
-    */
 };
-void regnewacc(const std::string input, UserVector& vec)
+class status
+{
+public:
+    bool isloged;
+    std::string loggedacc;
+    status() { isloged = false; loggedacc = ""; }
+};
+bool login(status& Mystate , UserVector& A)
+{
+    std::cout << "\nInput account name\n";
+    std::string tmp = "";
+    std::cin >> tmp;
+    //поиск аккаунта
+    bool accok, passok = false; 
+    for (std::vector<Account>::iterator iter = A.begin(); iter != A.end(); iter++) {
+        if (iter->get_name() == tmp)
+        {
+            accok = true;
+            std::cout << "\nInput account password\n";
+            std::string tmp2 = "";
+            std::cin >> tmp2;
+            if (iter->get_passwd() == tmp2) passok = true; // проверка пароля 
+            if (accok && passok) 
+            {
+                Mystate.isloged = true;
+                Mystate.loggedacc = iter->get_name();
+                return true;
+            }
+        }
+    }
+    return false;
+}
+void regnewacc(const std::string input, UserVector& vec) // функция регистрации пользователя
 {
     if (input == "") { std::cout << "empty name\n"; return; }
     for (std::vector<Account>::iterator iter = vec.begin(); iter != vec.end(); iter++) {
@@ -64,8 +88,8 @@ int main(int argc, char* argv[])
         out2 << C->get_passwd() << std::endl;
     }
     out.close(); out2.close(); 
+    данный блок используется для заполнения файлов дефолтными аккаунтами
     */
-    //std::unique_ptr<Account> D(new Account());
     UserVector* A = new UserVector();
     std::ifstream in("accounts.txt");// окрываем файл для чтения
     if (in.is_open()) 
@@ -88,12 +112,32 @@ int main(int argc, char* argv[])
         if (tmp != "") iter->chg_passwd(tmp);
     }
     in2.close();
-
-
-
-
-
-
+    status Mystate;
+    short choice = 0;
+    do {
+        system("cls");
+        std::cout << "Current account state "<< Mystate.isloged << " " << Mystate.loggedacc << std::endl;
+        std::cout << "\n1:login with account name and passwd 2:register new user 3:exit\n";
+        std::cin >> choice;
+        switch (choice) 
+        {
+        case 1:
+        {
+            if (login(Mystate, *A)) { choice = 3; }
+            std::cout << "Current account state " << Mystate.isloged << " " << Mystate.loggedacc << std::endl;
+            break;
+        }
+        case 2: 
+        {
+            std::string tmp;
+            std::cout << "Please input account name \n";
+            std::cin >> tmp;
+            regnewacc(tmp, *A);
+            break;
+        }
+        case 3: break;
+        };
+    } while (choice != 3);
 
 
 
@@ -115,14 +159,3 @@ int main(int argc, char* argv[])
     A->clear();
     return 0; // возвращаем 0 - правило хорошего тона
 }
-
-// Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
-// Отладка программы: F5 или меню "Отладка" > "Запустить отладку"
-
-// Советы по началу работы 
-//   1. В окне обозревателя решений можно добавлять файлы и управлять ими.
-//   2. В окне Team Explorer можно подключиться к системе управления версиями.
-//   3. В окне "Выходные данные" можно просматривать выходные данные сборки и другие сообщения.
-//   4. В окне "Список ошибок" можно просматривать ошибки.
-//   5. Последовательно выберите пункты меню "Проект" > "Добавить новый элемент", чтобы создать файлы кода, или "Проект" > "Добавить существующий элемент", чтобы добавить в проект существующие файлы кода.
-//   6. Чтобы снова открыть этот проект позже, выберите пункты меню "Файл" > "Открыть" > "Проект" и выберите SLN-файл.
