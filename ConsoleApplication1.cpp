@@ -68,6 +68,22 @@ bool login(status& Mystate , UserVector& A) // функция входа по л
     }
     return false;
 }
+int pass_to_int(const std::string input)
+{
+    int sum = 0;
+      for (int i=0;i<input.length(); i++)
+       {
+          sum += input[i];
+       }
+    return sum;
+}
+
+void string_to_Login(Login& a,const std::string b)
+{
+    for (int i = 0; i < b.length() && i<10; i++)
+        a[i] = b[i];
+}
+
 void regnewacc(const std::string input, UserVector& vec) // функция регистрации пользователя
 {
     if (input == "") { std::cout << "empty name\n"; return; }
@@ -119,31 +135,7 @@ void showmessages(status Mystate) // вывод всех сообщений дл
 }
 int main(int argc, char* argv[])
 {
-    //account counter 
-    /*
-    std::ofstream out3;
-    out3.open("messlog.txt");
-    out3.close();
-    */
-    /*
-    std::unique_ptr<Account> A1(new Account("user1", "1"));
-    std::unique_ptr<Account> B(new Account("user2", "1"));
-    std::unique_ptr<Account> C(new Account("user3", "1"));
-    std::ofstream out , out2;          // поток для записи
-    out.open("accounts.txt");
-    out2.open("passwds.txt");// открываем файл для записи
-    if (out.is_open() && out2.is_open())
-    {
-        out << A1->get_name() << std::endl;
-        out2 << A1->get_passwd() << std::endl;
-        out << B->get_name() << std::endl;
-        out2 << B->get_passwd() << std::endl;
-        out << C->get_name() << std::endl;
-        out2 << C->get_passwd() << std::endl;
-    }
-    out.close(); out2.close(); 
-    данный блок можно использовать для заполнения файлов дефолтными аккаунтами
-    */
+    HashTable* Table = new HashTable();
     int n = 0; //счётчик дла аккаунтов
     try
     {
@@ -178,7 +170,7 @@ int main(int argc, char* argv[])
         out2.open("passwds.txt");
         return 1;
     }
-    
+
         UserVector* A = new UserVector();
         std::ifstream in("accounts.txt");// окрываем файл для чтения
         if (in.is_open())
@@ -190,6 +182,10 @@ int main(int argc, char* argv[])
                 in >> tmp;
                 if (tmp != "") D->chg_name(tmp);
                 if (tmp != "") A->push_back(*D);
+                Login a;
+                string_to_Login(a, D->get_name());
+                Table->add(a, pass_to_int(D->get_passwd()));
+                std::cout << "\ntable_pass=" << Table->find(a) << "\n";
                 delete D;
             }
         }
@@ -206,8 +202,6 @@ int main(int argc, char* argv[])
     short choice = 0;
     while (1)
     {
-
-
         do {
             system("cls");
             std::cout << "Current account state " << Mystate.isloged << " " << Mystate.loggedacc << std::endl;
@@ -297,3 +291,4 @@ int main(int argc, char* argv[])
 
     }
 }
+
